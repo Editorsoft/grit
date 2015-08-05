@@ -28,14 +28,21 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import de.teamgrit.grit.preprocess.Connection;
+import de.teamgrit.grit.util.mailer.EncryptorDecryptor;
 
 /**
  * This SVNFetcher is able  to fetch
@@ -72,6 +79,7 @@ public final class SvnFetcher {
     public static Path fetchSubmissions(
             final Connection connection, final Path targetDirectory)
             throws SubmissionFetchingException {
+    	
         if (!checkConnectionToRemoteSVN(connection.getLocation())) {
             throw new SubmissionFetchingException(
                     "No connection to remote SVN.");
@@ -284,7 +292,15 @@ public final class SvnFetcher {
         if ((connection.getPassword() != null)
                 && !connection.getPassword().isEmpty()) {
             svnCommand.add("--password");
-            svnCommand.add(connection.getPassword());
+            EncryptorDecryptor ed = new EncryptorDecryptor();
+            try {
+				svnCommand.add(ed.decrypt(connection.getPassword()));
+			} catch (InvalidKeyException | NoSuchAlgorithmException
+					| NoSuchPaddingException | IllegalBlockSizeException
+					| BadPaddingException e) {
+				// TODO Auto-generated catch block
+				LOGGER.severe("Fehler bei Entschlüsselung von PW für SVN" + e.getMessage());
+			}
         }
 
         // build process: construct command and set working directory.

@@ -141,11 +141,6 @@ public class MailPreprocessor {
             map.put(currentSubmission.getStudent(), currentSubmission);
         }
 
-        if (submissions.isEmpty()) {
-            LOGGER.severe("No submissions were found. ");
-            throw new SubmissionFetchingException("Submissions list is empty.");
-        }
-
         LOGGER.info("Processed all submissions");
 
         return new PreprocessingResult(map, new ArrayList<Student>());

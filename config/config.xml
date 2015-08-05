@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<config>
+<server>
+<port value="8080"/>
+</server>
+<email>
+<auth password="" adress="" host=""/>
+</email>
+<admin>
+<user name="username" email="" password="password"/>
+</admin>
+</config>

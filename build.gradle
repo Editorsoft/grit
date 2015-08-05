@@ -1,3 +1,7 @@
+/*
+* changed by Verena Berg on 2015-06-24 at 19.31
+*/
+
 apply plugin: "java"
 apply plugin: 'eclipse'
 apply plugin: 'application'
@@ -6,7 +10,10 @@ apply plugin: 'idea'
 group = theGroup
 
 sourceCompatibility = theSourceCompatibility
-version = theVersion + getDate()
+version=theVersion
+if(theRelease){
+  version = theVersion + getDate()
+}
 
 mainClassName = 'de.teamgrit.grit.main.Boot'
 
@@ -70,9 +77,6 @@ dependencies {
 
 }
 
-// test {
-//     systemProperties 'property': 'value'
-// }
 
 // No need to install gradle
 task wrapper(type: Wrapper) {
@@ -89,6 +93,7 @@ distZip {
         include 'config/**'
 	include 'runscript.bat'
 	include 'runscript.sh'
+	include 'shutdownGrit.sh'
     }
 }
 
@@ -101,6 +106,7 @@ installApp {
         include 'config/**'
 	include 'runscript.bat'
 	include 'runscript.sh'
+	include 'shutdownGrit.sh'
     }
 }
 
@@ -112,9 +118,25 @@ uploadArchives {
     }
 }
 
+/*original
+*
+*startScripts {
+*    doLast {
+*    String optionText = 'DEFAULT_JVM_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address="' + theDebugPort
+*        unixScript.text = unixScript.text.replace('DEFAULT_JVM_OPTS=""', optionText)
+*        windowsScript.text = windowsScript.text.replace('DEFAULT_JVM_OPTS=', optionText)
+*    }
+*}
+*/
+
+/* changed
+*
+* tell the Java VM to use IPv4 instead of IPv6
+*/
+
 startScripts {
     doLast {
-    String optionText = 'DEFAULT_JVM_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address="' + theDebugPort
+    String optionText = 'DEFAULT_JVM_OPTS="-Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address="' + theDebugPort
         unixScript.text = unixScript.text.replace('DEFAULT_JVM_OPTS=""', optionText)
         windowsScript.text = windowsScript.text.replace('DEFAULT_JVM_OPTS=', optionText)
     }

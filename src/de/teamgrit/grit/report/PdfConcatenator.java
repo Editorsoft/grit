@@ -110,7 +110,7 @@ public class PdfConcatenator {
         writer.append("\\begin{document} \n");
         writer.append("\\begin{titlepage}\n");
         writer.append("\\begin{center}\n");
-        writer.append("\\textsc{\\LARGE Universität Konstanz}\\\\[1.5cm]\n\n");
+        writer.append("\\textsc{\\LARGE Universit\"at Konstanz}\\\\[1.5cm]\n\n");
         writer.append("{\\large Korrektur\n\n");
         writer.append("\\rule{\\linewidth}{0.5mm}\\\\[0.4cm]\n");
         writer.append("{\\fontfamily{qhv}\\huge\\bfseries ")

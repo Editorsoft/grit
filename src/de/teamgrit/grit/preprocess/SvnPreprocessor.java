@@ -72,8 +72,8 @@ public final class SvnPreprocessor {
     public static PreprocessingResult preprocess(Connection connection,
             Path targetDirectory, String fileRegex, String archiveRegex)
             throws SubmissionFetchingException {
-
-        Tokenizer submissionTokenizer =
+    	    	    	    	
+       Tokenizer submissionTokenizer =
                 new GeneralTokenizer(fileRegex, archiveRegex);
         List<Student> studentsWithoutSubmission = new ArrayList<>();
         Map<Student, Submission> submissions = new HashMap<>();
@@ -82,13 +82,13 @@ public final class SvnPreprocessor {
         // throws SubmissionFetchingException
         Path pathToSubmissions =
                 SvnFetcher.fetchSubmissions(connection, targetDirectory);
-
+       
+        
         if (pathToSubmissions != null) {
             // since we're using SVN we don't receive a list of mail
             // adresses, so we have to parse the corresponding file
             // which has to be provided in the toplevel directory of
             // the repository
-
             LOGGER.info("Collecting submissions");
             try {
                 // getting a list of all submissions with the corresponding
@@ -97,10 +97,22 @@ public final class SvnPreprocessor {
                 List<Submission> tokenizedSubmissions =
                         submissionTokenizer.exploreSubmissionDirectory(
                                 connection.getStructure(), pathToSubmissions);
+                
+                // FetchSubmission return incomplete path to pathToSubmission. The root folder is missing, which contain the students file,
+                // thats why it is attached here, to find the students.txt file.
+                
                 File studentsMapping =
-                        new File(pathToSubmissions.toString(), "students.txt");
-
-                // throws FileNotFoundException
+                        new File(pathToSubmissions.toString() + "/" + connection.getStructure().getStructure().get(1) , "students.txt");
+                
+                // However this is not always the case. It is unclear yet what might cause this behavior. Thats why the following  line of code 
+                // is another working solution in some cases. If one of these cause an error because of missmatching between submission structure and 
+                // svn repo or students mapping error try the other line of code
+                
+                // File studentsMapping =
+                //        new File(pathToSubmissions.toString(), "students.txt");
+                     
+               // throws FileNotFoundException
+                                
                 Scanner fileReader = new Scanner(studentsMapping);
 
                 List<String> tempStudents = new ArrayList<>();
@@ -117,7 +129,7 @@ public final class SvnPreprocessor {
                 }
 
                 fileReader.close();
-
+                                
                 String[] students = tempStudents.toArray(new String[0]);
 
                 List<Path> emptySubmissionPaths =

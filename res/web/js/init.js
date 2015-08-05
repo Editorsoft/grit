@@ -21,7 +21,7 @@ function initialize() {
 	// handling.
 	$.ajaxSetup({
 		error: function(xhr, status, error) {
-			message = xhr.responseText + "\n(" + error + ")";
+			message = "An error occured.\n If this error occured in the XML-window the server is rebooting."//xhr.responseText + "\n(" + error + ")";
 			alert(message);
 			$(".overlay").css("display", "none");
 		}
@@ -90,6 +90,7 @@ function initialize() {
 		return false;
 	});
 
+
 	// Initialize a date and time picker for date and time input fields.
 	$('.datetime').datetimepicker({
 		format: 'Y-m-d H:i',
@@ -132,10 +133,10 @@ function courseList() {
 		$.each(courses, function(i, course) {
 			$("#course-list #courses").append('<div class="course">'
 					+ '<div class="course-buttons">'
-					+ '<a class="icon-button edit" id="course-'
+					+ '<a data-tooltip="Edit Course" class="icon-button edit tooltip-bottom" id="course-'
 					+ course.id + '-edit" href="course-' + course.id
 					+ '-edit"><img src="img/32/pen.png"></a>'
-					+ '<a class="icon-button delete" id="course-'
+					+ '<a data-tooltip="Delete Course" class="icon-button delete tooltip-bottom" id="course-'
 					+ course.id + '-delete" href="course-'
 					+ course.id + '-delete"><img src="img/32/del.png"></a>' + '</div>'
 					+ '<a id="course-'
@@ -224,11 +225,11 @@ function exerciseList(courseId) {
 			$("#exercise-list table").append('<tr><td>' + exercise.context.name
 					+ '</td>' + '<td>' + exercise.context.startTimeString + '</td>' + '<td>'
 					+ exercise.context.deadlineString + '</td>' + '<td>' + exercise.status
-					+ '</td>' + '<td>' + '<a class="icon-button edit" id="exercise-'
+					+ '</td>' + '<td>' + '<a data-tooltip="Edit Exercise" class="icon-button edit tooltip-bottom" id="exercise-'
 					+ exercise.id
 					+ '-edit" href="exercise-' + exercise.id
 					+ '-edit"><img src="img/32/pen.png"></a>'
-					+ '<a class="icon-button delete" id="exercise-' + exercise.id
+					+ '<a data-tooltip="Delete Exercise" class="icon-button delete tooltip-bottom" id="exercise-' + exercise.id
 					+ '-delete" href="exercise-'
 					+ exercise.id + '-delete"><img src="img/32/del.png"></a>'
 					+ '<a class="icon-button download" id="exercise-' + exercise.id
@@ -415,8 +416,9 @@ function exerciseEdit(courseId, exerciseId) {
  * @returns {undefined}
  */
 function exerciseDelete(courseId, exerciseId) {
-	alert("Warning:\n"
-			+ "The exercise will be deleted and will no longer be available!");
+	if (!confirm("Warning:\n"
+			+ "The exercise will be deleted and will no longer be available!"))
+		return;
 	$("#overlay-loading").css("display", "block");
 	$.getJSON('exercise/delete/' + courseId + '/' + exerciseId, function(
 			exercise) {
@@ -494,8 +496,9 @@ function courseEdit(courseId) {
  * @returns {undefined}
  */
 function courseDelete(courseId) {
-	alert("Warning:\n"
-			+ "The course including all its exercises will be deleted and will no longer be available!");
+	if (!confirm("Warning:\n"
+			+ "The course including all its exercises will be deleted and will no longer be available!"))
+		return;
 	$("#overlay-loading").css("display", "block");
 	$.getJSON('course/delete/' + courseId, function(
 			course) {
@@ -561,17 +564,18 @@ function connectionList() {
 				+ '</tr>');
 		$.each(connnections, function(i, connection) {
 			$("#connection-list table").append('<tr><td>' + connection.name + '</td>'
-					+ '<td>' + connection.connectionType + '</td>' + '<td>'
+					+ '<td class = "rightStructure">' + connection.connectionType + '</td>' + '<td>'
 					+ connection.location + '</td>' + '<td>' + connection.username + '</td>'
 					+ '<td>' + connection.sshUsername + '</td>' + '<td>'
-					+ '<a class="icon-button edit" id="connection-' + connection.id
+					+ '<a data-tooltip="Edit Connection" class="icon-button edit tooltip-bottom" id="connection-' + connection.id
 					+ '-edit" href="connection-' + connection.id
 					+ '-edit"><img src="img/32/pen.png"></a>'
-					+ '<a class="icon-button delete" id="connection-' + connection.id
+					+ '<a data-tooltip="Delete Connection" class="icon-button delete tooltip-bottom" id="connection-' + connection.id
 					+ '-delete" href="connection-'
 					+ connection.id + '-delete"><img src="img/32/del.png"></a>'
 					+ '</td></tr>');
 			$("#connection-" + connection.id + "-edit").click(function() {
+				TestType = $(this).closest('tr').find(".rightStructure").text();
 				connectionEdit(connection.id);
 				return false;
 			});
@@ -584,6 +588,7 @@ function connectionList() {
 		$("#connection-list").css("display", "block");
 		$("#overlay-loading").css("display", "none");
 	});
+	
 }
 
 /**
@@ -594,7 +599,7 @@ function connectionList() {
 function connectionNew() {
 	$("#overlay-loading").css("display", "block");
 	$.getJSON('connection/types', function(connectionTypes) {
-
+		var connectionTypess = ["SVN","MAIL"]
 		backAction = function() {
 			connectionList();
 		};
@@ -607,12 +612,13 @@ function connectionNew() {
 		$("#connection-new-connectionName").val("");
 
 		$("#connection-new-connectionType").empty();
-
+			
 		var typeCount = 0;
-		$.each(connectionTypes, function(i, type) {
+		$.each(connectionTypess, function(i, type) {
 			$("#connection-new-connectionType").append('<option value="' + type + '">'
 					+ type + '</option>');
 			typeCount++;
+			$(".mailchange").text("location:");
 		});
 
 		$("#connection-new-location").val("");
@@ -624,6 +630,29 @@ function connectionNew() {
 
 		$("#connection-new").css("display", "block");
 		$("#overlay-loading").css("display", "none");
+		//$("ILIAS").hide();
+		$("#connection-new-connectionType").change(function() {
+			  val = $(this).val();
+			  if (val == 'ILIAS') {
+				  $(".SVN").hide();
+				  $(".ILIAS").show();
+			  }
+			  if (val == 'SVN') {
+				  $(".SVN").show();
+				  $(".ILIAS").hide();  
+				  $(".mailchange").text("location:");
+			  }  
+			  if (val == 'MAIL') {
+				  $(".ILIAS,.SVN").hide();
+				  $(".mailchange").text("Access Protocol:");
+				  
+			  }
+			 });
+		var checkSVN = $("#connection-new-connectionType").val();
+		if (checkSVN == 'SVN') {
+				$(".SVN").show();
+				$(".ILIAS").hide();
+		}
 	});
 }
 
@@ -636,7 +665,8 @@ function connectionEdit(connectionId) {
 	$("#overlay-loading").css("display", "block");
 	$.getJSON('connection/types', function(connectionTypes) {
 		$.getJSON('connection/read/' + connectionId, function(connection) {
-
+			var connectionTypes1 = ["SVN","MAIL"]
+			var connectionTypes2 = ["MAIL","SVN"]
 			backAction = function() {
 				connectionList();
 			};
@@ -649,14 +679,27 @@ function connectionEdit(connectionId) {
 			$("#connection-edit-connectionName").val(connection.name);
 
 			$("#connection-edit-connectionType").empty();
-
+			if (TestType == 'MAIL'){
+				var typeCount = 0;
+				$.each(connectionTypes2, function(i, type) {
+					$("#connection-edit-connectionType").append('<option value="' + type
+						+ '">'
+						+ type + '</option>');
+				typeCount++;
+				});
+				$('.SVN').hide();
+				$(".mailchange").text("Access Protocol:");
+			}else {
 			var typeCount = 0;
-			$.each(connectionTypes, function(i, type) {
+			$.each(connectionTypes1, function(i, type) {
 				$("#connection-edit-connectionType").append('<option value="' + type
 						+ '">'
 						+ type + '</option>');
 				typeCount++;
-			});
+				});
+				$('.SVN').show();
+				$(".mailchange").text("location:")
+			}
 
 			$("#connection-edit-location").val(connection.location);
 			$("#connection-edit-username").val(connection.username);
@@ -681,10 +724,39 @@ function connectionEdit(connectionId) {
 
 			$("#connection-edit").css("display", "block");
 			$("#overlay-loading").css("display", "none");
+			
 		});
+		
 	});
-}
 
+	$('.ILIAS').hide();
+	$("#connection-edit-connectionType").change(function() {
+		  val = $(this).val();
+		  /* ---Auskommentierten Zeilen werden ohne ILIAS Einbindung nicht benötigt.---
+		   * if (val == 'ILIAS') {
+			 $(".SVN").hide();
+			 $(".ILIAS").show();
+		  }*/
+		  if (val == 'SVN') {
+			  $(".SVN").show();
+			  $(".mailchange").text("location:");
+			  //$(".ILIAS").hide();  
+		  }  
+		  if (val == 'MAIL') {
+			  $(".SVN").hide();
+			  $(".mailchange").text("Access Protocol");
+		  }
+		 });
+	var checkILIAS = $("#connection-edit-connectionType").val();
+	if (checkILIAS == 'ILIAS') {
+			$(".ILIAS").show();
+	}
+	var checkSVN = $("#connection-edit-connectionType").val();
+	if (checkSVN == 'SVN') {
+			$(".SVN").show();
+	}
+}
+  
 /**
  * This is the view function for the connection delete action.
  * 
@@ -692,8 +764,9 @@ function connectionEdit(connectionId) {
  * @returns {undefined}
  */
 function connectionDelete(connectionId) {
-	alert("Warning:\n"
-			+ "The connection will be deleted and will no longer be available!");
+if (!confirm("Warning:\n"
+			+ "The connection will be deleted and will no longer be available!"))
+	return;
 	$("#overlay-loading").css("display", "block");
 	$.getJSON('connection/delete/' + connectionId, function(
 			connection) {
@@ -733,7 +806,6 @@ function xml() {
 		$("#overlay-loading").css("display", "none");
 	});
 }
-
 /**
  * This function opens the documentation.
  * 
