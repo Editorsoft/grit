@@ -48,7 +48,6 @@ public class SendMail {
     private String to;
     private String subject;
     private String text;
-    private String receivingHost;
 
     public void setAccountDetails(String userName, String password) {
         this.userName = userName;
@@ -61,8 +60,8 @@ public class SendMail {
         this.subject = subject;
         this.text = text;
 
-        //For a Gmail sending-account, host and port should be as follows:
-        this.sendingHost = "smtp.gmail.com";
+        //If a GMAIL account is used to send the emails the host and port should be as follows:
+        this.sendingHost = Controller.getController().getConfig().getSmtpHost(); //Bsp.: "smtp.gmail.com";
         this.sendingPort = 465;
 
         Properties props = new Properties();
@@ -90,12 +89,12 @@ public class SendMail {
             message.setSubject(this.subject);
             message.setText(this.text);
 
-            //The following is needed for gmail:
+            //The following is needed for GMAIL:
             Transport transport = session.getTransport("smtps");
             transport.connect(this.sendingHost,sendingPort, this.userName, this.password);
             transport.sendMessage(message, message.getAllRecipients());
             transport.close();
-            //For other accounts it could also be: Transport.send(simpleMessage);
+            //If you are not using GMAIL it could also be: Transport.send(simpleMessage);
         } catch (AddressException e) {
             LOGGER.severe("AddressException during SendMail " + e.getMessage());
         } catch (MessagingException e) {

@@ -86,50 +86,37 @@ public class GeneralTokenizer implements Tokenizer {
       
 
         // first make sure we have got stuff to check at all
-        if ((location.toFile().listFiles() == null)
-                || (location.toFile().listFiles().length == 0)) {
-            // then return nothing.
-            return new LinkedList<>();
-        }
+        // Mailfetcher sets location to null, if no submission was available, therefore it has to be taken care here.
+        try {
+        	if ((location.toFile().listFiles() == null)
+                    || (location.toFile().listFiles().length == 0) || location == null) {
+                // then return nothing.
+                return new LinkedList<>();
+            }
+		} catch (NullPointerException e) {
+			return new LinkedList<>();
+		}
         
+       
         List<Submission> foundSubmissions = new LinkedList<>();
 
         // We are now at TOPLEVEL, which is location
         // now we recursively traverse along the given structure
         
-        // Test ob Struktur richtig übergeben wird an traverse
-        
-        List<String> t = submissionStructure.getStructure();
-        for (int i= 0; i < t.size(); i++)
-        	m_log.info(t.get(i));
-        // Test ob Pfad richtig übergeben wird an traverse
-        m_log.info(location.toString());
-        
         List<Path> allSubmissionPaths = traverse(
                 submissionStructure.getStructure(), location);
-        
-        if(allSubmissionPaths.size() == 0)
-        	m_log.info("kein Pfad über travers gefunden");
-        
-        // Aussgane der gefunden SubmissionPaths
-        for (int i= 0; i < allSubmissionPaths.size(); i++)
-        	m_log.info("SubmissonPaths:" + allSubmissionPaths.get(i).toString());
-        
-                  
+                         
         // For each file we found we add a submission object
         
         int i = 0;
         
         for (Path submissionFile : allSubmissionPaths) {
-        	m_log.info("SubmissionFile:" + submissionFile.toString());
-            Submission submission = new Submission(submissionFile, new Student(
+        	Submission submission = new Submission(submissionFile, new Student(
                     "Unknown" + i));
             foundSubmissions.add(submission);
             i++;
         }
         
-        if(foundSubmissions.size() == 0)
-        	m_log.info("foundSubmission ist leer");
         return foundSubmissions;
     }
 
@@ -201,11 +188,16 @@ public class GeneralTokenizer implements Tokenizer {
         List<Path> foundSubmissions = new LinkedList<>();
 
         // ensure that empty dirs are handled properly
-        if ((location.toFile().listFiles() == null)
+        try {
+        	if ((location.toFile().listFiles() == null)
                 || (location.toFile().listFiles().length == 0)) {
             m_log.info("No files in " + location.toString());
             return new LinkedList<>();
-        }
+        } 	
+		} catch (NullPointerException e) {
+			return new LinkedList<>();
+		}
+        
 
         // If we are not too deep and not in the final level, go through all
         // directories here and go one level deeper.

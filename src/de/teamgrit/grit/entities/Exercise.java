@@ -55,6 +55,7 @@ import de.teamgrit.grit.checking.compile.CompilerOutputFolderExistsException;
 import de.teamgrit.grit.checking.plausibility.SubmissionPlausibilityChecker;
 import de.teamgrit.grit.checking.testing.Tester;
 import de.teamgrit.grit.preprocess.Connection;
+import de.teamgrit.grit.preprocess.ConnectionType;
 import de.teamgrit.grit.preprocess.PreprocessingResult;
 import de.teamgrit.grit.preprocess.Preprocessors;
 import de.teamgrit.grit.preprocess.Student;
@@ -277,8 +278,21 @@ public class Exercise {
         } else {
             /* send mails to the students with corrupted submissions. */
             status = "sending emails";
-            notifyStudentsWithCorruptedSubmission(submissionsToProcess);
-            notifyStudentsWithoutSubmission(studentsWithoutSubmission);
+            //conType is necessary when the E-Mail submission system is used, to send a notification e-mail
+            //to the sutdents which have send a solution.
+            try {
+            	String conType = Controller.getController().getConnection(id).getConnectionType().toString();
+                if (conType.equals("MAIL"))
+                	sendReceivingNotification(submissionsToProcess);
+                notifyStudentsWithCorruptedSubmission(submissionsToProcess);
+                notifyStudentsWithoutSubmission(studentsWithoutSubmission);
+			} catch (NullPointerException e) {
+				status = "Error while sending Mail";
+				LOGGER.info("Error while sending Mail" + e.getMessage());
+						
+			}
+            
+            
             status = "waiting";
         }
     }
@@ -485,6 +499,46 @@ public class Exercise {
     }
 
     /**
+     * Sends an E-Mail to every student who has send a solution as an email.
+     * 
+     * @param submissions
+     * 			Every new submission which is received by the email-server.
+     * 			List of submissions which contain all relevant data in order to send mails
+     */
+    private void sendReceivingNotification(
+    		List<Submission> submissions) {
+    	for (Submission sub : submissions) {
+    		//Logger shows that submission(s) does not compile
+    		LOGGER.info("Send receiving notification.");
+    		
+    		//The following code will create the necessary variables to send an email.
+    		String receiverEmailAddress = sub.getStudent().getEmail();
+    		String sendUserName = 
+    				Controller.getController().getConfig().getSenderMailAdress();
+    		String sendPassword =
+    				Controller.getController().getConfig().getMailPassword();
+    		
+    		//The following code creates the mailSubject and the mailtext of the email
+    		//which will be received by the student.
+    		String mailSubject = new String("Ihre Abgabe für Exercise " + getName() + " wurde empfangen.");
+    		String mailText = new String("Hello " + sub.getStudent().getName() + ",\n" +
+    		"Ihre Abgabe wurde empfangen.\n\n" + 
+    				"Mit freundlichen Grüßen\n\n" + "Grit");
+    		
+    		//The following code will send an email to the student(s) to infrom them that Grit received their email.
+    		//The catch statements are necessary because of the EncryptorDecryptor.
+    		try {
+    			//EnrcryptorDecryptor ed = new EncryptorDecryptor();
+    			SendMail sendMail = new SendMail();
+    			sendMail.setAccountDetails(sendUserName, sendPassword);
+    			sendMail.sendEMail(sendUserName, receiverEmailAddress, mailSubject, mailText);
+    		} catch (Exception e) {
+    			LOGGER.severe("Exception during sending email because a solution was received by MAIL " + e.getMessage());
+    		}
+    	}
+    }
+    
+    /**
      * Checks if plausible flag or cleanCopile flag of submission is set or
      * not. Sends warning email to corresponding student if not. If set this
      * method does nothing.
@@ -507,13 +561,46 @@ public class Exercise {
              * student containing the message that files are missing
              */
             if (!sub.isPlausible()) {
-                try {
+                LOGGER.info("Submission(s) is/are not plausible.");
+                
+              //The following code will create the necessary variables to send an email.
+        		String receiverEmailAddress = sub.getStudent().getEmail();
+        		String sendUserName = 
+        				Controller.getController().getConfig().getSenderMailAdress();
+        		String sendPassword =
+        				Controller.getController().getConfig().getMailPassword();
+        		
+        		//The following code creates the mailSubject and the mailtext of the email
+        		//which will be received by the student.
+        		String mailSubject = new String("Ihre Abgabe f\u00FCr Exercise " + getName() + " ist nicht plausibel.");
+        		String mailText = new String("Hallo " + sub.getStudent().getName() + ",\n" +
+        				"Ihre Abgabe ist nicht plausibel.\n" +
+        				"Probleme sind: \n" + getCompilerError(sub) + "\n\n" +
+        				"Sie haben bis " + context.getDeadlineString() +
+        				" Zeit, dies zu korrigieren.\n\n" +
+        				"Mit freundlichen Gr\u00FC\u00DFen\n\n" + "Grit");
+        		
+        		//The following code will send an email to the student(s) to infrom them that Grit received their email.
+        		//The catch statements are necessary because of the EncryptorDecryptor.
+        		try {
+        			//EnrcryptorDecryptor ed = new EncryptorDecryptor();
+        			SendMail sendMail = new SendMail();
+        			sendMail.setAccountDetails(sendUserName, sendPassword);
+        			sendMail.sendEMail(sendUserName, receiverEmailAddress, mailSubject, mailText);
+        		} catch (Exception e) {
+        			LOGGER.severe("Exception during sending email because of submissions which are not plausible " + e.getMessage());
+        		}
+            	
+            	
+            	/*
+            	try {
                     SendMailSSL.sendMail(GenerateMailObjectHelper
                             .generateMailObjectMissingFiles(sub, context));
                 } catch (MessagingException e) {
                     LOGGER.severe("Exception occured while trying to send "
                             + "mails to students. " + e.getMessage());
                 }
+                */
 
             } else if (!sub.getCheckingResult().getCompilerOutput()
                     .isCleanCompile()) {
@@ -524,45 +611,34 @@ public class Exercise {
                  */
 
                 //Logger shows that Submission(s) does not compile
-                LOGGER.severe("Submission(s) does not compile.");
+                LOGGER.info("Submission(s) does not compile.");
 
                 //The following code will create the necessary variables to send an email.
-                String emailAdmin = Controller.getController().getConfig().getMailAdmin();
                 String receiverEmailAddress = sub.getStudent().getEmail();
                 String sendUserName =
-                        m_controller.getConnection(context.getConnectionId()).getUsername().toString();
+                        //m_controller.getConnection(context.getConnectionId()).getUsername().toString();
+                		Controller.getController().getConfig().getSenderMailAdress();
                 String sendPassword =
-                        m_controller.getConnection(context.getConnectionId()).getPassword().toString();
+                        //m_controller.getConnection(context.getConnectionId()).getPassword().toString();
+                		Controller.getController().getConfig().getMailPassword();
 
                 //The following code creates the mailSubject and the mailText of the email
                 //which will be received by the student.
-                String mailSubject = new String("Ihre Abgabe fÃ¼r Exercise " + getName() + " kompiliert nicht.");
+                String mailSubject = new String("Ihre Abgabe f\u00FCr Exercise " + getName() + " kompiliert nicht.");
                 String mailText = new String("Hallo " + sub.getStudent().getName() + ",\n" +
                                              "Ihre Abgabe kompiliert nicht.\n" +
                                              "Probleme sind: \n" + getCompilerError(sub) + "\n\n" +
                                              "Sie haben bis " + context.getDeadlineString() +
                                              " Zeit, dies zu korrigieren.\n\n" +
-                                             "Mit freundlichen GrÃ¼ÃŸen\n\n" + "Grit.");
+                                             "Mit freundlichen Gr\u00FC\u00DFen\n\n" + "Grit.");
 
                 //The following code will send an email to the student(s) with submissions which does not compile.
                 //The catch statements are necessary because of the EncryptorDecryptor.
                 try {
-                    EncryptorDecryptor ed = new EncryptorDecryptor();
                     SendMail sendMail = new SendMail();
-                    sendMail.setAccountDetails(sendUserName, ed.decrypt(sendPassword));
+                    sendMail.setAccountDetails(sendUserName, sendPassword);
                     sendMail.sendEMail(sendUserName, receiverEmailAddress, mailSubject, mailText);
-                } catch (IOException e) {
-                    LOGGER.severe("IOException during sending email because of Submissions which does not compile " + e.getMessage());
-                } catch (IllegalBlockSizeException e) {
-                    LOGGER.severe("IllegalBlockSizeException during sending email because of Submissions which does not compile " + e.getMessage());
-                } catch (InvalidKeyException e) {
-                    LOGGER.severe("InvalidKeyException during sending email because of Submissions which does not compile " + e.getMessage());
-                } catch (BadPaddingException e) {
-                    LOGGER.severe("BadPaddingException during sending email because of Submissions which does not compile " + e.getMessage());
-                } catch (NoSuchAlgorithmException e) {
-                    LOGGER.severe("NoSuchAlgorithmException during sending email because of Submissions which does not compile " + e.getMessage());
-                } catch (NoSuchPaddingException e) {
-                    LOGGER.severe("NoSuchPaddingException during sending email because of Submissions which does not compile " + e.getMessage());
+                    LOGGER.info("Email an stud mit compiler-error wurde versand.");
                 } catch (Exception e) {
                     LOGGER.severe("Exception during sending email because of Submissions which does not compile " + e.getMessage());
                 }
@@ -588,13 +664,47 @@ public class Exercise {
         if (((in12hours >= lowerBoundary) && (in12hours < upperBoundary))
                 || ((in6hours >= lowerBoundary) && (in6hours < upperBoundary))) {
             for (Student student : studentsWithoutSubmissions) {
+            	LOGGER.info("Notify students without submissions.");
+            	
+            	//The following code will create the necessary variables to send an email.
+                String receiverEmailAddress = student.getEmail();
+                String sendUserName =
+                        //m_controller.getConnection(context.getConnectionId()).getUsername().toString();
+                		Controller.getController().getConfig().getSenderMailAdress();
+                String sendPassword =
+                        //m_controller.getConnection(context.getConnectionId()).getPassword().toString();
+                		Controller.getController().getConfig().getMailPassword();
+
+                //The following code creates the mailSubject and the mailText of the email
+                //which will be received by the student.
+                String mailSubject = new String("Sie haben f\u00FCr Exercise " + getName() + " noch keine L\u00F6sung abgegeben.");
+                String mailText = new String("Hallo " + student.getName() + ",\n" +
+                                             "Sie haben noch keine L\u00F6sung eingereicht.\n" +
+                                             "Sie haben bis " + context.getDeadlineString() +
+                                             " Zeit, dies zu korrigieren.\n\n" +
+                                             "Mit freundlichen Gr\u00FC\u00DFen\n\n" + "Grit.");
+
+                //The following code will send an email to the student(s) with submissions which does not compile.
+                //The catch statements are necessary because of the EncryptorDecryptor.
                 try {
+                    SendMail sendMail = new SendMail();
+                    sendMail.setAccountDetails(sendUserName, sendPassword);
+                    sendMail.sendEMail(sendUserName, receiverEmailAddress, mailSubject, mailText);
+                    LOGGER.info("Email an stud without submission wurde versand.");
+                } catch (Exception e) {
+                    LOGGER.severe("Exception during sending email to notivy student without submission " + e.getMessage());
+                }
+            	
+                
+            	/*
+            	try {
                     SendMailSSL.sendMail(GenerateMailObjectHelper
                             .generateMailObjectNoSubmission(student, context));
                 } catch (MessagingException e) {
                     LOGGER.severe("Exception occured while trying to send mails "
                             + "to students. " + e.getMessage());
                 }
+                */
             }
         }
     }
@@ -609,10 +719,12 @@ public class Exercise {
         //emailAdmin is the receiverEmailAddress
         String emailAdmin = Controller.getController().getConfig().getMailAdmin();
         String sendUserName =
-                m_controller.getConnection(context.getConnectionId()).getUsername().toString();
+                //m_controller.getConnection(context.getConnectionId()).getUsername().toString();
+        		Controller.getController().getConfig().getSenderMailAdress();
         String sendPassword =
-                m_controller.getConnection(context.getConnectionId()).getPassword().toString();
-
+                //m_controller.getConnection(context.getConnectionId()).getPassword().toString();
+        		Controller.getController().getConfig().getMailPassword();
+        		
         //The following code creates the mailSubject and the mailText of the email
         //which will received by the admin.
         String mailSubject = new String("Exercise " + getName() + " ist abgeschlossen.");
@@ -625,24 +737,11 @@ public class Exercise {
         //The following code will send an email to the admin as a notification that the exercise has passed the deadline.
         //The catch statements are necessary because of the EncryptorDecryptor.
         try {
-            EncryptorDecryptor ed = new EncryptorDecryptor();
             SendMail sendMail = new SendMail();
-            sendMail.setAccountDetails(sendUserName, ed.decrypt(sendPassword));
+            sendMail.setAccountDetails(sendUserName, sendPassword);
             sendMail.sendEMail(sendUserName, emailAdmin, mailSubject, mailText);
-        } catch (IOException e) {
-            LOGGER.severe("IOException during sending email because of Submissions which does not compile " + e.getMessage());
-        } catch (IllegalBlockSizeException e) {
-            LOGGER.severe("IllegalBlockSizeException during sending email because of Submissions which does not compile " + e.getMessage());
-        } catch (InvalidKeyException e) {
-            LOGGER.severe("InvalidKeyException during sending email because of Submissions which does not compile " + e.getMessage());
-        } catch (BadPaddingException e) {
-            LOGGER.severe("BadPaddingException during sending email because of Submissions which does not compile " + e.getMessage());
-        } catch (NoSuchAlgorithmException e) {
-            LOGGER.severe("NoSuchAlgorithmException during sending email because of Submissions which does not compile " + e.getMessage());
-        } catch (NoSuchPaddingException e) {
-            LOGGER.severe("NoSuchPaddingException during sending email because of Submissions which does not compile " + e.getMessage());
         } catch (Exception e) {
-            LOGGER.severe("Exception during sending email because of Submissions which does not compile " + e.getMessage());
+            LOGGER.severe("Exception during sending email to admin " + e.getMessage());
         }
     }
 
@@ -715,7 +814,12 @@ public class Exercise {
             } catch (ClassNotFoundException | IOException e) {
                 LOGGER.severe("Exception while testing Submisson. "
                         + e.getMessage());
+            } catch (NullPointerException n) {
+            	// if tester is not properly selected during exercise, then it is null by default. Thats why it is cached here.
+            	List<Result> results = new ArrayList<>();
+            	return new TestOutput(results, true);
             }
+            
         } else if (!compileResult.isCleanCompile()) {
             List<Result> results = new ArrayList<>();
             return new TestOutput(results, false);

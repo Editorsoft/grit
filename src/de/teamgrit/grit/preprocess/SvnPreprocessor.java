@@ -103,6 +103,13 @@ public final class SvnPreprocessor {
                 
                 File studentsMapping =
                         new File(pathToSubmissions.toString() + "/" + connection.getStructure().getStructure().get(1) , "students.txt");
+                
+                // However this is not always the case. It is unclear yet what might cause this behavior. Thats why the following  line of code 
+                // is another working solution in some cases. If one of these cause an error because of missmatching between submission structure and 
+                // svn repo or students mapping error try the other line of code
+                
+                // File studentsMapping =
+                //        new File(pathToSubmissions.toString(), "students.txt");
                      
                // throws FileNotFoundException
                                 

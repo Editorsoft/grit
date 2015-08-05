@@ -66,7 +66,7 @@ public abstract class Boot {
      * Starts grit.
      * 
      * @param args
-     *            needed by JAVA, not actually used.
+     *            used for setting a custom port to reach the grit server at
      */
     public static void main(String[] args) {
 
